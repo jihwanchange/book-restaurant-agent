@@ -1,11 +1,21 @@
 # pip install fastapi uvicorn
 from fastapi import FastAPI, Request, HTTPException
+app = FastAPI()
+
+# Add CORS middleware
+from fastapi.middleware.cors import CORSMiddleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Or specify allowed origins
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 import uuid
 import httpx
 
-app = FastAPI()
 sessions = set()
-
 async def create_book_session():
     session_id = str(uuid.uuid4())
     url = "http://localhost:8000/apps/book_agent/users/user1/sessions/" + session_id
