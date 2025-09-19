@@ -10,50 +10,65 @@ from dataclasses import dataclass
 from qdrant_client import QdrantClient
 from sentence_transformers import SentenceTransformer
 import re
+from .translation_service import translate_korean_query
 
-# 한국어-영어 번역 딕셔너리
-KOREAN_TO_ENGLISH = {
-    '피자': 'pizza',
-    '햄버거': 'hamburger burger',
-    '치킨': 'chicken',
-    '커피': 'coffee',
-    '카페': 'cafe coffee shop',
-    '이탈리아': 'italian',
-    '중국': 'chinese',
-    '일본': 'japanese sushi',
-    '태국': 'thai',
-    '한국': 'korean',
-    '베트남': 'vietnamese',
-    '멕시칸': 'mexican',
-    '인도': 'indian',
-    '스시': 'sushi japanese',
-    '라면': 'ramen noodles',
-    '파스타': 'pasta italian',
-    '스테이크': 'steak beef',
-    '바베큐': 'barbecue bbq',
-    '술집': 'bar pub',
-    '레스토랑': 'restaurant',
-    '식당': 'restaurant',
-    '맛집': 'good restaurant',
-    '추천': 'recommend',
-    '맛있는': 'delicious tasty',
-    '좋은': 'good',
-    '최고': 'best excellent',
-    '저렴한': 'cheap affordable',
-    '비싼': 'expensive',
-    '가족': 'family',
-    '아이': 'kids children',
-    '데이트': 'date romantic',
-    '분위기': 'atmosphere ambiance',
-    '조용한': 'quiet',
-    '시끄러운': 'loud noisy',
-    '브런치': 'brunch',
-    '아침': 'breakfast morning',
-    '점심': 'lunch',
-    '저녁': 'dinner evening',
-    '야식': 'late night food',
-    '배달': 'delivery',
-    '포장': 'takeout'
+# 포괄적 한국어-영어 번역 딕셔너리
+KOREAN_FOOD_TRANSLATION = {
+    # 국가/지역 음식 (다양한 표현 포함)
+    '중국|중식|짜장|짬뽕|탕수육|마파두부|궁보|딤섬': 'chinese',
+    '일본|일식|스시|사시미|라멘|우동|소바|돈까스|규동|사케': 'japanese sushi ramen',
+    '이탈리아|양식|파스타|피자|리조또|스파게티': 'italian pasta pizza',
+    '태국|태식|팟타이|똠양꿍|그린커리|팬센': 'thai',
+    '인도|인도식|커리|난|탄두리|바스마티': 'indian curry',
+    '베트남|월남|쌀국수|분짜|반미': 'vietnamese pho',
+    '멕시코|멕시칸|타코|부리또|케사디야|나초': 'mexican taco burrito',
+    '한국|한식|김치|불고기|갈비|비빔밥|냉면|삼겹살': 'korean bbq',
+    '프랑스|프렌치|에스카르고|크로아상': 'french',
+    '스페인|스패니시|파에야|타파스': 'spanish',
+
+    # 음식 유형
+    '피자': 'pizza italian',
+    '햄버거|버거': 'burger hamburger',
+    '치킨|닭|프라이드': 'chicken fried',
+    '스테이크|소고기': 'steak beef steakhouse',
+    '바베큐|바비큐|BBQ|구이': 'barbecue bbq grilled',
+    '해산물|생선|새우|랍스터|조개|회|횟집': 'seafood fish',
+    '샐러드|야채': 'salad vegetarian',
+
+    # 식당 유형
+    '카페|커피|에스프레소|라떼|아메리카노': 'cafe coffee',
+    '술집|바|맥주|와인|칵테일|호프': 'bar pub beer wine cocktail',
+    '패스트푸드|패패': 'fast food',
+    '뷔페|부페|올유캔잇': 'buffet all you can eat',
+
+    # 식사 시간
+    '아침|모닝|브런치': 'breakfast brunch morning',
+    '점심|런치': 'lunch',
+    '저녁|디너|만찬': 'dinner evening',
+    '야식|새벽|밤': 'late night',
+
+    # 접미사 (식당 유형)
+    '집$': 'restaurant house',  # 중식집, 일식집
+    '점$': 'restaurant',        # 중국점, 일본점
+    '관$': 'restaurant',        # 중국관, 일본관
+    '가$': 'restaurant house',  # 한정식가, 갈비가
+
+    # 특징/분위기
+    '가족|아이|어린이|키즈': 'family kids children friendly',
+    '데이트|로맨틱|커플': 'romantic date couple',
+    '조용|정적|차분': 'quiet peaceful',
+    '분위기|무드|감성': 'atmosphere ambiance mood',
+    '저렴|싸|가성비|가격': 'cheap affordable budget',
+    '고급|비싼|프리미엄|럭셔리': 'expensive premium upscale fine dining',
+
+    # 액션/의도
+    '추천|소개': 'recommend',
+    '맛있는|맛좋은|맛집': 'delicious tasty good popular',
+    '좋은|괜찮은': 'good',
+    '최고|베스트': 'best excellent',
+    '먹고싶어|먹을|드시고': 'eat food',
+    '가고싶어|가서|갈만한': 'go visit',
+    '알려줘|찾아줘|검색': 'find search tell',
 }
 
 logger = logging.getLogger(__name__)
@@ -68,24 +83,8 @@ class SearchFilters:
     dogs_allowed: Optional[bool] = None
     price_range: Optional[str] = None  # "low", "medium", "high"
 
-def translate_korean_query(query: str) -> str:
-    """한국어 쿼리를 영어로 번역하여 검색 품질 향상."""
-
-    # 원본 쿼리 보존
-    translated_parts = []
-
-    # 한국어 키워드 번역
-    for korean, english in KOREAN_TO_ENGLISH.items():
-        if korean in query:
-            translated_parts.append(english)
-
-    # 원본과 번역된 키워드 조합
-    if translated_parts:
-        enhanced_query = query + " " + " ".join(translated_parts)
-        logger.info(f"Query translation: '{query}' -> '{enhanced_query}'")
-        return enhanced_query
-
-    return query
+# Legacy translation function - now handled by translation_service.py
+# Keeping KOREAN_FOOD_TRANSLATION as backup for pattern matching
 
 class RestaurantSearchService:
     """Restaurant search service using vector similarity and filters."""

@@ -99,7 +99,7 @@ class SimpleAgent(BaseAgent):
             return await value
         return value
 
-def _handle_user_message(user_message: str) -> str:
+def _handle_user_message(user_message: str) -> list:
     try:
         return _handle_greetings_flow(user_message)
     except Exception as e:

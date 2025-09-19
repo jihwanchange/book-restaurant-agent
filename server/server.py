@@ -40,7 +40,22 @@ async def invoke_agent(session_id: str, user_message: str = "") -> str:
         response.raise_for_status()
         data = response.json()
 
-        return data[0]["content"]["parts"][0]["text"]
+        # Parse the JSON response from the agent
+        agent_response = data[0]["content"]["parts"][0]["text"]
+        try:
+            # Parse the JSON string to get the actual message
+            import json
+            parsed_response = json.loads(agent_response)
+            if isinstance(parsed_response, list) and len(parsed_response) > 0:
+                # Extract text from the first message
+                first_message = parsed_response[0]
+                if first_message.get("type") == "Message":
+                    return first_message.get("text", "")
+        except (json.JSONDecodeError, KeyError, IndexError):
+            pass
+
+        # Fallback to original response if parsing fails
+        return agent_response
 
 @app.post("/session")
 async def create_session():
