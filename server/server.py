@@ -27,7 +27,7 @@ async def create_book_session():
         data = response.json()
         return data.get("id", session_id)
 
-async def invoke_agent(session_id: str, user_message: str = "레스토랑 예약을 도와줘.") -> str:
+async def invoke_agent(session_id: str, user_message: str = "") -> str:
     url = "http://localhost:8000/run"
     payload = {
         "app_name": "book_agent",
