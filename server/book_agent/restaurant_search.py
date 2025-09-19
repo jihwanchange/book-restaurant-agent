@@ -11,6 +11,51 @@ from qdrant_client import QdrantClient
 from sentence_transformers import SentenceTransformer
 import re
 
+# 한국어-영어 번역 딕셔너리
+KOREAN_TO_ENGLISH = {
+    '피자': 'pizza',
+    '햄버거': 'hamburger burger',
+    '치킨': 'chicken',
+    '커피': 'coffee',
+    '카페': 'cafe coffee shop',
+    '이탈리아': 'italian',
+    '중국': 'chinese',
+    '일본': 'japanese sushi',
+    '태국': 'thai',
+    '한국': 'korean',
+    '베트남': 'vietnamese',
+    '멕시칸': 'mexican',
+    '인도': 'indian',
+    '스시': 'sushi japanese',
+    '라면': 'ramen noodles',
+    '파스타': 'pasta italian',
+    '스테이크': 'steak beef',
+    '바베큐': 'barbecue bbq',
+    '술집': 'bar pub',
+    '레스토랑': 'restaurant',
+    '식당': 'restaurant',
+    '맛집': 'good restaurant',
+    '추천': 'recommend',
+    '맛있는': 'delicious tasty',
+    '좋은': 'good',
+    '최고': 'best excellent',
+    '저렴한': 'cheap affordable',
+    '비싼': 'expensive',
+    '가족': 'family',
+    '아이': 'kids children',
+    '데이트': 'date romantic',
+    '분위기': 'atmosphere ambiance',
+    '조용한': 'quiet',
+    '시끄러운': 'loud noisy',
+    '브런치': 'brunch',
+    '아침': 'breakfast morning',
+    '점심': 'lunch',
+    '저녁': 'dinner evening',
+    '야식': 'late night food',
+    '배달': 'delivery',
+    '포장': 'takeout'
+}
+
 logger = logging.getLogger(__name__)
 
 @dataclass
@@ -22,6 +67,25 @@ class SearchFilters:
     good_for_kids: Optional[bool] = None
     dogs_allowed: Optional[bool] = None
     price_range: Optional[str] = None  # "low", "medium", "high"
+
+def translate_korean_query(query: str) -> str:
+    """한국어 쿼리를 영어로 번역하여 검색 품질 향상."""
+
+    # 원본 쿼리 보존
+    translated_parts = []
+
+    # 한국어 키워드 번역
+    for korean, english in KOREAN_TO_ENGLISH.items():
+        if korean in query:
+            translated_parts.append(english)
+
+    # 원본과 번역된 키워드 조합
+    if translated_parts:
+        enhanced_query = query + " " + " ".join(translated_parts)
+        logger.info(f"Query translation: '{query}' -> '{enhanced_query}'")
+        return enhanced_query
+
+    return query
 
 class RestaurantSearchService:
     """Restaurant search service using vector similarity and filters."""
@@ -53,8 +117,11 @@ class RestaurantSearchService:
         """Search restaurants using semantic similarity and filters."""
 
         try:
+            # 한국어 쿼리 번역으로 검색 품질 향상
+            enhanced_query = translate_korean_query(query)
+
             # Generate query embedding
-            query_embedding = self.model.encode([query], convert_to_numpy=True)[0]
+            query_embedding = self.model.encode([enhanced_query], convert_to_numpy=True)[0]
 
             # Search in Qdrant using correct API
             search_results = self.client.search(
