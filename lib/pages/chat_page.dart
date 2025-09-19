@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../models/chat_session.dart';
 import '../models/message.dart';
 import '../services/server_api.dart';
@@ -537,6 +538,10 @@ class _ChatPageState extends State<ChatPage> {
                     controller: _controller,
                     decoration: const InputDecoration(hintText: '메시지 입력'),
                     onSubmitted: (_) => _sendMessage(),
+                    keyboardType: TextInputType.multiline,
+                    textInputAction: TextInputAction.send,
+                    enableIMEPersonalizedLearning: true,
+                    inputFormatters: [],
                   ),
                 ),
                 IconButton(
