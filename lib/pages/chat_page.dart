@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import '../models/chat_session.dart';
 import '../models/message.dart';
 import '../services/server_api.dart';
@@ -8,7 +7,7 @@ import 'package:provider/provider.dart';
 import 'dart:convert';
 
 class ChatPage extends StatefulWidget {
-  const ChatPage({Key? key}) : super(key: key);
+  const ChatPage({super.key});
 
   @override
   State<ChatPage> createState() => _ChatPageState();
@@ -70,7 +69,7 @@ class _ChatPageState extends State<ChatPage> {
                     id: item['restaurant_id'] ?? item['id'] ?? '',
                     status: item['status'] ?? '',
                     datetime: item['datetime'] ?? '',
-                    persons: item['persons'] ?? null,
+                    persons: item['persons'],
                   ),
                 );
                 break;
@@ -102,7 +101,7 @@ class _ChatPageState extends State<ChatPage> {
               id: obj['restaurant_id'] ?? obj['id'] ?? '',
               status: obj['status'] ?? '',
               datetime: obj['datetime'] ?? '',
-              persons: obj['persons'] ?? null,
+              persons: obj['persons'],
             ),
           );
         } else {
@@ -154,7 +153,7 @@ class _ChatPageState extends State<ChatPage> {
                   final hour12 = hour % 12 == 0 ? 12 : hour % 12;
                   formattedDt =
                       '${date.year}년 ${date.month}월 ${date.day}일 $ampm $hour12시';
-                  if (minute > 0) formattedDt += ' ${minute}분';
+                  if (minute > 0) formattedDt += ' $minute분';
                 } catch (_) {
                   formattedDt = '';
                 }
@@ -233,7 +232,7 @@ class _ChatPageState extends State<ChatPage> {
               final hour12 = hour % 12 == 0 ? 12 : hour % 12;
               formattedDt =
                   '${date.year}년 ${date.month}월 ${date.day}일 $ampm $hour12시';
-              if (minute > 0) formattedDt += ' ${minute}분';
+              if (minute > 0) formattedDt += ' $minute분';
             } catch (_) {
               formattedDt = '';
             }
@@ -287,7 +286,7 @@ class _ChatPageState extends State<ChatPage> {
               final hour12 = hour % 12 == 0 ? 12 : hour % 12;
               formattedDt =
                   '${date.year}년 ${date.month}월 ${date.day}일 $ampm $hour12시';
-              if (minute > 0) formattedDt += ' ${minute}분';
+              if (minute > 0) formattedDt += ' $minute분';
             } catch (_) {
               formattedDt = '';
             }
@@ -322,8 +321,9 @@ class _ChatPageState extends State<ChatPage> {
   @override
   Widget build(BuildContext context) {
     _updateReservationInfo();
-    if (reservationDatetime != null)
+    if (reservationDatetime != null) {
       _datetimeController.text = reservationDatetime!;
+    }
     if (reservationPersons != null) _personsEdit = reservationPersons;
     return Scaffold(
       appBar: AppBar(title: Text(session.title)),
@@ -356,7 +356,11 @@ class _ChatPageState extends State<ChatPage> {
                             controller: _datetimeController,
                             decoration: const InputDecoration(
                               hintText: 'YYYY-MM-DD HH:mm',
+                              border: OutlineInputBorder(),
+                              contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                             ),
+                            keyboardType: TextInputType.text,
+                            enableSuggestions: true,
                             onSubmitted: (value) {
                               if (value.isNotEmpty &&
                                   value != reservationDatetime) {
@@ -364,7 +368,7 @@ class _ChatPageState extends State<ChatPage> {
                                   reservationDatetime = value;
                                 });
                                 final msg =
-                                    '${selectedRestaurantTitle} 예약 일시를 $value로 변경해 주세요';
+                                    '$selectedRestaurantTitle 예약 일시를 $value로 변경해 주세요';
                                 _sendMessageDirect(msg);
                               }
                             },
@@ -394,7 +398,7 @@ class _ChatPageState extends State<ChatPage> {
                                 _personsEdit = value;
                               });
                               final msg =
-                                  '${selectedRestaurantTitle} 예약 인원을 $value명으로 변경해 주세요';
+                                  '$selectedRestaurantTitle 예약 인원을 $value명으로 변경해 주세요';
                               _sendMessageDirect(msg);
                             }
                           },
@@ -473,8 +477,8 @@ class _ChatPageState extends State<ChatPage> {
                         Padding(
                           padding: const EdgeInsets.only(right: 8.0),
                           child: CircleAvatar(
-                            child: Icon(Icons.smart_toy, color: Colors.white),
                             backgroundColor: Colors.blue,
+                            child: Icon(Icons.smart_toy, color: Colors.white),
                           ),
                         ),
                       Flexible(
@@ -518,8 +522,8 @@ class _ChatPageState extends State<ChatPage> {
                         Padding(
                           padding: const EdgeInsets.only(left: 8.0),
                           child: CircleAvatar(
-                            child: Icon(Icons.person, color: Colors.white),
                             backgroundColor: Colors.green,
+                            child: Icon(Icons.person, color: Colors.white),
                           ),
                         ),
                     ],
@@ -536,12 +540,17 @@ class _ChatPageState extends State<ChatPage> {
                 Expanded(
                   child: TextField(
                     controller: _controller,
-                    decoration: const InputDecoration(hintText: '메시지 입력'),
+                    decoration: const InputDecoration(
+                      hintText: '메시지 입력',
+                      border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    ),
                     onSubmitted: (_) => _sendMessage(),
-                    keyboardType: TextInputType.multiline,
+                    keyboardType: TextInputType.text,
                     textInputAction: TextInputAction.send,
-                    enableIMEPersonalizedLearning: true,
-                    inputFormatters: [],
+                    enableSuggestions: true,
+                    maxLines: null,
+                    minLines: 1,
                   ),
                 ),
                 IconButton(

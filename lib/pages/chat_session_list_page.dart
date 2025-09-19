@@ -5,7 +5,7 @@ import '../services/server_config.dart';
 import 'package:provider/provider.dart';
 
 class ChatSessionListPage extends StatefulWidget {
-  const ChatSessionListPage({Key? key}) : super(key: key);
+  const ChatSessionListPage({super.key});
 
   @override
   State<ChatSessionListPage> createState() => _ChatSessionListPageState();

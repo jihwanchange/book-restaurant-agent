@@ -47,10 +47,8 @@ async def invoke_agent(session_id: str, user_message: str = "") -> str:
             import json
             parsed_response = json.loads(agent_response)
             if isinstance(parsed_response, list) and len(parsed_response) > 0:
-                # Extract text from the first message
-                first_message = parsed_response[0]
-                if first_message.get("type") == "Message":
-                    return first_message.get("text", "")
+                # Return the full parsed response instead of just the first message
+                return agent_response
         except (json.JSONDecodeError, KeyError, IndexError):
             pass
 
