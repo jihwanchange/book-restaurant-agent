@@ -179,8 +179,8 @@ def main():
     # Create collection
     vector_db.create_collection()
 
-    # Index restaurants
-    restaurants_file = "yelp/restaurants_enhanced.json"
+    # Index restaurants with smart filtering
+    restaurants_file = "yelp/restaurants_smart_enhanced.json"
     vector_db.index_restaurants(restaurants_file)
 
     # Test search
