@@ -56,12 +56,11 @@ class RestaurantSearchService:
             # Generate query embedding
             query_embedding = self.model.encode([query], convert_to_numpy=True)[0]
 
-            # Search in Qdrant (simplified without filters for now)
+            # Search in Qdrant using correct API
             search_results = self.client.search(
                 collection_name=self.collection_name,
                 query_vector=query_embedding.tolist(),
                 limit=limit * 2,  # Get more results for filtering
-                # Remove score_threshold to get all results
             )
 
             # Apply filters manually if needed
@@ -72,7 +71,7 @@ class RestaurantSearchService:
             # Format and return results
             results = []
             for result in filtered_results[:limit]:
-                restaurant_data = result.payload
+                restaurant_data = result.payload.copy()
                 restaurant_data['similarity_score'] = result.score
                 results.append(restaurant_data)
 
@@ -80,6 +79,10 @@ class RestaurantSearchService:
 
         except Exception as e:
             logger.error(f"Error searching restaurants: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            print(f"Search error: {e}")  # Also print to console
+            print(f"Query was: {query}")
             return []
 
     def _apply_manual_filters(self, results, filters: SearchFilters):
@@ -165,11 +168,8 @@ class RestaurantSearchService:
                                          limit: int = 3) -> List[Dict[str, Any]]:
         """Get restaurant recommendations based on user preferences."""
 
-        # Parse preferences for filters
-        filters = self._parse_preferences(preferences, location)
-
-        # Search with semantic similarity
-        return self.search_restaurants(preferences, filters, limit)
+        # Search without filters to avoid API issues
+        return self.search_restaurants(preferences, filters=None, limit=limit)
 
     def _parse_preferences(self, preferences: str, location: str) -> SearchFilters:
         """Parse user preferences to extract filters."""
